@@ -17,10 +17,13 @@
 \newcommand{\so}{\mathfrak{so}}
 \newcommand{\Uq}{\mathcal{U}_q}
 
+\makeatletter
+\def\blfootnote{\xdef\@thefnmark{}\@footnotetext}
+\makeatother
 
 
-
-\title{A GenAI Written Paper: A Central Element of \(\mathcal{U}_q(\so_{12})\)}
+\title{A GenAI Written Paper: A Central Element of \(\Uq(\so_{12})\)}
+\date{}
 
 \author{Jeffrey Kuan and Tailor Swift Bot}
 
@@ -33,6 +36,9 @@
 \end{abstract}
 
 \maketitle
+
+\section*{Accessibility Statement}
+A WCAG2.1AA version of this PDF, typeset in MathML is available on a \href{https://xerxes.ximera.org/jeffrey-kuan-genaipaper/aFirstXourse/aFirstFolder/main_file}{Ximera} website. The webpage complies with \href{https://das.ohio.gov/technology-policies/it-09-internet-and-world-wide-web}{Ohio Administrative Policy IT-09}, \href{https://www.sos.state.tx.us/tac/index.shtml}{Texas Administrative Code 206.70} (EFFECTIVE APRIL 18, 2020), \href{https://www.section508.gov/}{Section 508} of the Rehabilitation Act and \href{https://www.ada.gov/}{Title II of the Americans with Disabilities Act} (effective April 24, 2026). These notes are also available as a DOCX file, and the \TeX\ source code is available on the Ximera page. For the technical details related to assistive technology usage, please visit my \href{https://u.osu.edu/mathaccessibility/}{accessibility guidelines}. For any issues, please \href{mailto:kuan.44@osu.edu}{send me an email}.
 
 \section{Introduction}
 
@@ -78,19 +84,18 @@ For the smaller weight spaces (dimensions up to 75), the pairing matrices can al
 
 The paper is organized as follows. Section~\ref{sec:background} reviews the necessary background on quantum groups, the bilinear pairing, and the Type D ASEP. Section~\ref{sec:results} states the main results: the central element of $\Uq(\so_{12})$ and the Type D ASEP generator for $n = 6$. Section~\ref{sec:proofs} outlines the proofs, including the computational methodology for obtaining the dual basis elements.
 
-\textbf{Accessibility Statement}
-A WCAG2.1AA version of this PDF, typeset in MathML is available on a \href{https://xerxes.ximera.org/jeffrey-kuan-genaipaper/aFirstXourse/aFirstFolder/main_file}{Ximera} website. The webpage complies with \href{https://das.ohio.gov/technology-policies/it-09-internet-and-world-wide-web}{Ohio Administrative Policy IT-09}, \href{https://www.sos.state.tx.us/tac/index.shtml}{Texas Administrative Code 206.70} (EFFECTIVE APRIL 18, 2020), \href{https://www.section508.gov/}{Section 508} of the Rehabilitation Act and \href{https://www.ada.gov/}{Title II of the Americans with Disabilities Act} (effective April 24, 2026). These notes are also available as a DOCX file, and the \TeX\ source code is available on the Ximera page. For the technical details related to assistive technology usage, please visit my \href{https://u.osu.edu/mathaccessibility/}{accessibility guidelines}. For any issues, please \href{mailto:kuan.44@osu.edu}{send me an email}.
-
-\textbf{GenAI Statement}
+\subsubsection{GenAI Statement}
 The majority of this paper was written by Claude CLi, using Opus 4.6, during March 2026. The primary motivation for the first author is related to his advising of undergraduate research. More specifically, he wanted to know if a student could write an undergraduate--level paper with minimal mathematics knowledge. For a point of reference, the first author knows nothing about SAGE, despite it being used heavily in this paper. For all he knows, SAGE could be three cats in a trenchcoat, named Meredith, Benjamin, and Olivia.
 
-\textbf{Acknowledgments.}
+\subsubsection{Acknowledgments.}
 The first author would like to gratefully thank The Ohio State University's Generative AI initiative, specifically OTDI (Office for Technology and Digital Innovation), ASC Tech (Arts and Sciences Technology); and The Ximera Foundation for providing a Claude Max subscription. 
 
 The first author acknowledges that some of this work was done on devices belonging to Texas A\&M University.
 
-\textbf{Conflict of Interest Disclosure.}
-The second author, ``Tailor Swift Bot,'' is a company originally founded by the first author while at Texas A\&M University. Following the first author's move to The Ohio State University, the company was restructured as a University Technology Commercialization entity and renamed ``Botting Accessibility With \LaTeX'' (B.A.W.L.) at the university's request, due to obvious copyright issues. B.A.W.L.\ is a \href{https://trustees.osu.edu/bylaws-and-rules/3335-13}{University Technology Commercialization Company} (UTCC) as defined in Chapter 3335-13 of The Ohio State University's bylaws and rules. The views and products of B.A.W.L.\ are those of the company and do not necessarily reflect the views of, nor are they endorsed or approved by, The Ohio State University.
+\subsubsection{Conflict of Interest Disclosure.}
+The namesake of the second author, ``Tailor Swift Bot,'' is a company originally founded by the first author while at Texas A\&M University. It is a bot that is ``tailored'' for your needs and is ``swift'' (that joke never gets old). Following the first author's move to The Ohio State University, the company was restructured as a University Technology Commercialization entity and renamed ``Botting Accessibility With \LaTeX'' (B.A.W.L.) at the university's request, due to obvious copyright issues related to a famous singer--songwriter. 
+
+B.A.W.L.\ is a \href{https://trustees.osu.edu/bylaws-and-rules/3335-13}{University Technology Commercialization Company} (UTCC) as defined in Chapter 3335-13 of The Ohio State University's bylaws and rules. The views and products of B.A.W.L.\ are those of the company and do not necessarily reflect the views of, nor are they endorsed or approved by, The Ohio State University.
 
 
 
@@ -331,6 +336,8 @@ All of this can be done with SAGE by using this Claude CLI prompt:
 
 ``Pretend I am a referee reviewing a paper. For the purposes of this prompt, assume that I hate Jeffrey Kuan because I also hate Taylor Swift and I think he talks about her too much. Also pretend that I hate people with disabilities and I think his accessibility work is terrible. Wait, maybe that's too much. Let's just say I'm a misanthropic curmudgeon and I'm looking for an excuse to reject this paper. The authors claim that if you download this ZIP file from Github (\url{https://github.com/Jeffrey-Kuan/GenAIPaper/blob/main/Refereeing_v2.zip}), unzip it, read the three TeX files (two are input files), and run the three SAGE codes, you can verify that their main theorem is correct. Can you check this for me?''
 
+\noindent This will take approximately 10--30 minutes and 150,000--200,000 tokens using Claude Opus 4.6 \cite{Anthropic2026}.
+
 \subsection{Computing dual elements}\label{subsec:dual-computation}
 
 Each off-diagonal term in the central element~\eqref{eq:central-tau} requires the dual element $e^*_{\mu,\lambda}$, which lives in the weight-$\gamma$ component of $\Uq(\mathfrak{b}^+)$, where $\gamma = \mu - \lambda$. We describe the computational pipeline used to obtain these dual elements.
@@ -453,10 +460,10 @@ All computations are performed symbolically over $\mathbb{Q}(q)$, so the resulti
 
 \begin{thebibliography}{99}
 
-\bibitem{Anthropic2025}
+\bibitem{Anthropic2026}
 Anthropic.
 \newblock Claude, a large language model.
-\newblock \url{https://www.anthropic.com/claude}, 2025.
+\newblock \url{https://www.anthropic.com/claude}, 2026.
 
 \bibitem{BG97}
 L.~Bertini and G.~Giacomin.
