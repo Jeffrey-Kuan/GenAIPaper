@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Math 2153 Grade Calculator</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: #222;
+    background: #fafafa;
+  }
+  h1 { margin-bottom: 0.25rem; }
+  .subtitle { color: #666; margin-top: 0; margin-bottom: 2rem; }
+  fieldset {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+  }
+  legend { font-weight: 600; padding: 0 0.5rem; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0.4rem 0;
+  }
+  label { flex: 1; }
+  input[type="number"] {
+    width: 90px;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    text-align: right;
+  }
+  input[type="number"]:focus { outline: 2px solid #4a90e2; }
+  input[type="checkbox"] { width: 20px; height: 20px; }
+  .weight { color: #888; font-size: 0.9rem; margin-left: 0.5rem; }
+  .result {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #eef6ff;
+    border: 1px solid #b6d4f5;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .result .grade {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a5aa8;
+    margin: 0.25rem 0;
+  }
+  .result .letter {
+    font-size: 1.25rem;
+    color: #444;
+  }
+  .breakdown {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #555;
+    text-align: left;
+  }
+  .breakdown div { margin: 0.15rem 0; }
+  .dropped { color: #b22; font-style: italic; }
+  .note { font-size: 0.85rem; color: #777; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>Math 2153 Grade Calculator</h1>
+<p class="subtitle">Spring 2026 &middot; Enter scores as percentages (0&ndash;100).</p>
+
+<fieldset>
+  <legend>Midterms</legend>
+  <div class="row">
+    <label for="m1">Midterm 1 <span class="weight">(20%)</span></label>
+    <input type="number" id="m1" min="0" max="100" step="0.01" placeholder="—">
+  </div>
+  <div class="row">
+    <label for="m2">Midterm 2 <span class="weight">(20%)</span></label>
+    <input type="number" id="m2" min="0" max="100" step="0.01" placeholder="—">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Homework <span class="weight">(25% &middot; lowest of 8 dropped)</span></legend>
+  <div id="hw-grid"></div>
+  <p class="note">Leave blank for assignments you haven't received yet.</p>
+</fieldset>
+
+<fieldset>
+  <legend>Final Exam</legend>
+  <div class="row">
+    <label for="final">Final Exam <span class="weight">(35%)</span></label>
+    <input type="number" id="final" min="0" max="100" step="0.01" placeholder="—">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Extra Credit</legend>
+  <div class="row">
+    <label for="extracredit">Completed the extra credit assignment? <span class="weight">(+1%)</span></label>
+    <input type="checkbox" id="extracredit">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Attendance <span class="weight">(resurrection policy)</span></legend>
+  <div class="row">
+    <label for="attended">Lectures attended (out of 40)</label>
+    <input type="number" id="attended" min="0" max="40" step="1" placeholder="—">
+  </div>
+  <p class="note">
+    Resurrection grade = (attended / 40) × Final Exam %. Your course grade is the
+    <strong>higher</strong> of the traditional weighted grade and the resurrection grade.
+  </p>
+</fieldset>
+
+<div class="result">
+  <div class="letter">Current Course Grade</div>
+  <div class="grade" id="grade-display">—</div>
+  <div class="letter" id="letter-display"></div>
+  <div class="breakdown" id="breakdown"></div>
+</div>
+
+<script>
+  const hwGrid = document.getElementById('hw-grid');
+  for (let i = 1; i <= 8; i++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <label for="hw${i}">Homework ${i}</label>
+      <input type="number" id="hw${i}" class="hw-input" min="0" max="100" step="0.01" placeholder="—">
+    `;
+    hwGrid.appendChild(row);
+  }
+
+  const weights = { midterm1: 0.20, midterm2: 0.20, homework: 0.25, final: 0.35 };
+
+  function getNum(id) {
+    const v = document.getElementById(id).value;
+    if (v === '' || v === null) return null;
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function letterGrade(pct) {
+    if (pct >= 93) return 'A';
+    if (pct >= 90) return 'A−';
+    if (pct >= 87) return 'B+';
+    if (pct >= 83) return 'B';
+    if (pct >= 80) return 'B−';
+    if (pct >= 77) return 'C+';
+    if (pct >= 73) return 'C';
+    if (pct >= 70) return 'C−';
+    if (pct >= 67) return 'D+';
+    if (pct >= 63) return 'D';
+    return 'E';
+  }
+
+  function compute() {
+    const m1 = getNum('m1');
+    const m2 = getNum('m2');
+    const finalExam = getNum('final');
+    const attended = getNum('attended');
+    const hwScores = [];
+    for (let i = 1; i <= 8; i++) {
+      const s = getNum('hw' + i);
+      if (s !== null) hwScores.push({ idx: i, score: s });
+    }
+
+    let hwAvg = null;
+    let droppedIdx = null;
+    if (hwScores.length >= 2) {
+      const sorted = [...hwScores].sort((a, b) => a.score - b.score);
+      droppedIdx = sorted[0].idx;
+      const kept = sorted.slice(1);
+      hwAvg = kept.reduce((sum, h) => sum + h.score, 0) / kept.length;
+    } else if (hwScores.length === 1) {
+      hwAvg = hwScores[0].score;
+    }
+
+    const parts = [
+      { name: 'Midterm 1', val: m1, weight: weights.midterm1 },
+      { name: 'Midterm 2', val: m2, weight: weights.midterm2 },
+      { name: 'Homework avg (best 7 of 8)', val: hwAvg, weight: weights.homework },
+      { name: 'Final Exam', val: finalExam, weight: weights.final }
+    ];
+
+    let weightedSum = 0;
+    let weightTotal = 0;
+    for (const p of parts) {
+      if (p.val !== null) {
+        weightedSum += p.val * p.weight;
+        weightTotal += p.weight;
+      }
+    }
+
+    const gradeDisplay = document.getElementById('grade-display');
+    const letterDisplay = document.getElementById('letter-display');
+    const breakdown = document.getElementById('breakdown');
+
+    const traditional = weightTotal > 0 ? weightedSum / weightTotal : null;
+    const resurrection =
+      (attended !== null && finalExam !== null)
+        ? (attended / 40) * finalExam
+        : null;
+
+    let overall = null;
+    let ruleUsed = null;
+    if (traditional !== null && resurrection !== null) {
+      if (resurrection > traditional) {
+        overall = resurrection;
+        ruleUsed = 'resurrection';
+      } else {
+        overall = traditional;
+        ruleUsed = 'traditional';
+      }
+    } else if (traditional !== null) {
+      overall = traditional;
+      ruleUsed = 'traditional';
+    } else if (resurrection !== null) {
+      overall = resurrection;
+      ruleUsed = 'resurrection';
+    }
+
+    if (overall === null) {
+      gradeDisplay.textContent = '—';
+      letterDisplay.textContent = 'Enter at least one score';
+      breakdown.innerHTML = '';
+      return;
+    }
+
+    const extraCredit = document.getElementById('extracredit').checked ? 1 : 0;
+    const preBonus = overall;
+    overall = overall + extraCredit;
+
+    const percentComplete = Math.round(weightTotal * 100);
+
+    gradeDisplay.textContent = overall.toFixed(2) + '%';
+    const ruleLabel = ruleUsed === 'resurrection'
+      ? 'resurrection policy applied'
+      : `traditional weighted (${percentComplete}% of course entered)`;
+    letterDisplay.textContent = `${letterGrade(overall)} · ${ruleLabel}`;
+
+    let html = '';
+    for (const p of parts) {
+      const w = (p.weight * 100).toFixed(0);
+      if (p.val === null) {
+        html += `<div><em>${p.name}</em> — not entered (${w}%)</div>`;
+      } else {
+        html += `<div>${p.name}: <strong>${p.val.toFixed(2)}%</strong> × ${w}% = ${(p.val * p.weight).toFixed(2)} pts</div>`;
+      }
+    }
+    if (droppedIdx !== null) {
+      html += `<div class="dropped">Dropped: Homework ${droppedIdx} (lowest score)</div>`;
+    }
+
+    html += '<div style="margin-top:0.75rem;border-top:1px solid #cfe0f5;padding-top:0.5rem;">';
+    html += `<div>Traditional grade: <strong>${traditional !== null ? traditional.toFixed(2) + '%' : '—'}</strong></div>`;
+    if (attended !== null && finalExam !== null) {
+      html += `<div>Resurrection grade: (${attended}/40) × ${finalExam.toFixed(2)}% = <strong>${resurrection.toFixed(2)}%</strong></div>`;
+    } else {
+      html += `<div><em>Resurrection grade: needs both attendance and final exam</em></div>`;
+    }
+    html += `<div style="margin-top:0.25rem;"><strong>Course grade = max of the two</strong> → ${ruleUsed === 'resurrection' ? 'resurrection wins' : 'traditional wins'} (${preBonus.toFixed(2)}%)</div>`;
+    if (extraCredit > 0) {
+      html += `<div style="color:#1a5aa8;">Extra credit: +1% → final = ${overall.toFixed(2)}%</div>`;
+    }
+    html += '</div>';
+
+    breakdown.innerHTML = html;
+  }
+
+  document.querySelectorAll('input[type="number"]').forEach(inp => {
+    inp.addEventListener('input', compute);
+  });
+  document.getElementById('extracredit').addEventListener('change', compute);
+  compute();
+</script>
+
+</body>
+</html>
