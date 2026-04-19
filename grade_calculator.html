@@ -306,16 +306,21 @@
       { name: 'Final Exam', val: finalExam, weight: weights.final }
     ];
 
+    let weightedSum = 0;
+    let weightTotal = 0;
+    for (const p of parts) {
+      if (p.val !== null) {
+        weightedSum += p.val * p.weight;
+        weightTotal += p.weight;
+      }
+    }
+
     const breakdown = document.getElementById('breakdown');
 
     const extraCredit = document.getElementById('extracredit').checked ? 1 : 0;
 
     const allPartsEntered = parts.every(p => p.val !== null);
-    const missingParts = parts.filter(p => p.val === null).map(p => p.name);
-    let traditionalBase = null;
-    if (allPartsEntered) {
-      traditionalBase = parts.reduce((s, p) => s + p.val * p.weight, 0);
-    }
+    const traditionalBase = allPartsEntered ? weightedSum : null;
     const traditional = traditionalBase !== null ? traditionalBase + extraCredit : null;
 
     const resurrectionBase =
@@ -346,7 +351,7 @@
       m1 !== null || m2 !== null || finalRaw !== null || attended !== null ||
       hwScores.some(h => !HW_AUTO_FULL.has(h.idx));
 
-    if (!realInputEntered) {
+    if (overall === null || !realInputEntered) {
       breakdown.style.display = 'none';
       breakdown.innerHTML = '';
       return;
@@ -394,7 +399,7 @@
         : ` = <strong>${traditional.toFixed(2)}%</strong>`;
       html += `<div class="total">Traditional total: ${traditionalBase.toFixed(2)}%${ecLine}</div>`;
     } else {
-      html += `<div class="total"><em>Traditional grade not yet computable — missing: ${missingParts.join(', ')}.</em></div>`;
+      html += '<div class="total">Traditional total: <strong>—</strong></div>';
     }
 
     html += '<h4>Resurrection Grade</h4>';
@@ -413,12 +418,8 @@
     }
 
     html += '<h4>Course Grade</h4>';
-    if (traditional !== null && resurrection !== null) {
-      html += `<div>max(Traditional, Resurrection) → <strong>${ruleUsed === 'resurrection' ? 'resurrection wins' : 'traditional wins'}</strong></div>`;
-      html += `<div style="margin-top:0.6rem;font-size:1.4rem;font-weight:700;color:#1a5aa8;">${overall.toFixed(2)}% &nbsp; (${letterGrade(overall)})</div>`;
-    } else {
-      html += '<div><em>Enter all remaining scores to see your final course grade, or use the <strong>Target letter grade</strong> feature above to see what you need on the final.</em></div>';
-    }
+    html += `<div>max(Traditional, Resurrection) → <strong>${ruleUsed === 'resurrection' ? 'resurrection wins' : 'traditional wins'}</strong></div>`;
+    html += `<div style="margin-top:0.6rem;font-size:1.4rem;font-weight:700;color:#1a5aa8;">${overall.toFixed(2)}% &nbsp; (${letterGrade(overall)})</div>`;
 
     breakdown.innerHTML = html;
   }
