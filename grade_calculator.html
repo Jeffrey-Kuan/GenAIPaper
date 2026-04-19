@@ -201,11 +201,7 @@
   <div id="target-result"></div>
 </fieldset>
 
-<div class="result" id="result" style="display:none;">
-  <div class="grade" id="grade-display">—</div>
-  <div class="letter" id="letter-display"></div>
-  <div class="breakdown" id="breakdown"></div>
-</div>
+<div class="breakdown" id="breakdown" style="display:none;"></div>
 
 <p style="text-align:center;margin-top:1rem;">
   <button id="clear-btn" type="button"
@@ -319,15 +315,18 @@
       }
     }
 
-    const gradeDisplay = document.getElementById('grade-display');
-    const letterDisplay = document.getElementById('letter-display');
     const breakdown = document.getElementById('breakdown');
 
-    const traditional = weightTotal > 0 ? weightedSum / weightTotal : null;
-    const resurrection =
+    const extraCredit = document.getElementById('extracredit').checked ? 1 : 0;
+
+    const traditionalBase = weightTotal > 0 ? weightedSum / weightTotal : null;
+    const traditional = traditionalBase !== null ? traditionalBase + extraCredit : null;
+
+    const resurrectionBase =
       (attended !== null && finalExam !== null)
         ? (attended / 40) * finalExam
         : null;
+    const resurrection = resurrectionBase !== null ? resurrectionBase + extraCredit : null;
 
     let overall = null;
     let ruleUsed = null;
@@ -347,33 +346,23 @@
       ruleUsed = 'resurrection';
     }
 
-    const resultDiv = document.getElementById('result');
     const realInputEntered =
       m1 !== null || m2 !== null || finalRaw !== null || attended !== null ||
       hwScores.some(h => !HW_AUTO_FULL.has(h.idx));
 
     if (overall === null || !realInputEntered) {
-      resultDiv.style.display = 'none';
-      gradeDisplay.textContent = '—';
-      letterDisplay.textContent = '';
+      breakdown.style.display = 'none';
       breakdown.innerHTML = '';
       return;
     }
-    resultDiv.style.display = '';
-
-    const extraCredit = document.getElementById('extracredit').checked ? 1 : 0;
-    const preBonus = overall;
-    overall = overall + extraCredit;
+    breakdown.style.display = '';
 
     const percentComplete = Math.round(weightTotal * 100);
-
-    gradeDisplay.textContent = overall.toFixed(2) + '%';
-    const ruleLabel = ruleUsed === 'resurrection' ? ' (resurrection policy applied)' : '';
-    letterDisplay.textContent = `${letterGrade(overall)}${ruleLabel}`;
+    const ecSuffix = extraCredit > 0 ? ' + 1 (extra credit)' : '';
 
     let html = '';
     html += '<h4>Traditional Grade</h4>';
-    html += '<div class="formula">0.20·Midterm 1 + 0.20·Midterm 2 + 0.25·HW avg + 0.35·Final</div>';
+    html += `<div class="formula">0.20·Midterm 1 + 0.20·Midterm 2 + 0.25·HW avg + 0.35·Final${ecSuffix}</div>`;
     for (const p of parts) {
       const w = (p.weight * 100).toFixed(0);
       const isHwRow = p.name.startsWith('Homework');
@@ -403,13 +392,23 @@
       }
     }
 
-    html += `<div class="total">Traditional total: <strong>${traditional !== null ? traditional.toFixed(2) + '%' : '—'}</strong></div>`;
+    if (traditional !== null) {
+      const ecLine = extraCredit > 0
+        ? ` + 1 (extra credit) = <strong>${traditional.toFixed(2)}%</strong>`
+        : ` = <strong>${traditional.toFixed(2)}%</strong>`;
+      html += `<div class="total">Traditional total: ${traditionalBase.toFixed(2)}%${ecLine}</div>`;
+    } else {
+      html += '<div class="total">Traditional total: <strong>—</strong></div>';
+    }
 
     html += '<h4>Resurrection Grade</h4>';
-    html += '<div class="formula">(lectures attended / 40) × Final Exam %</div>';
+    html += `<div class="formula">(lectures attended / 40) × Final Exam %${ecSuffix}</div>`;
     html += '<div class="explanation">If you attended most lectures and did well on the final, the resurrection policy can give you a higher grade than the traditional formula — even if you did poorly on the midterms or homework. Your course grade will be whichever is higher.</div>';
     if (attended !== null && finalExam !== null) {
-      html += `<div>Calculation: (${attended}/40) × ${finalExam.toFixed(2)}% = <strong>${resurrection.toFixed(2)}%</strong></div>`;
+      const ecLine = extraCredit > 0
+        ? ` + 1 (extra credit) = <strong>${resurrection.toFixed(2)}%</strong>`
+        : ` = <strong>${resurrectionBase.toFixed(2)}%</strong>`;
+      html += `<div>Calculation: (${attended}/40) × ${finalExam.toFixed(2)}% = ${resurrectionBase.toFixed(2)}%${ecLine}</div>`;
     } else {
       const missing = [];
       if (attended === null) missing.push('attendance');
@@ -418,10 +417,8 @@
     }
 
     html += '<h4>Course Grade</h4>';
-    html += `<div>Course grade = max(Traditional, Resurrection) → <strong>${ruleUsed === 'resurrection' ? 'resurrection wins' : 'traditional wins'}</strong> at ${preBonus.toFixed(2)}%</div>`;
-    if (extraCredit > 0) {
-      html += `<div style="color:#1a5aa8;">Extra credit: +1% → <strong>${overall.toFixed(2)}%</strong></div>`;
-    }
+    html += `<div>max(Traditional, Resurrection) → <strong>${ruleUsed === 'resurrection' ? 'resurrection wins' : 'traditional wins'}</strong></div>`;
+    html += `<div style="margin-top:0.6rem;font-size:1.4rem;font-weight:700;color:#1a5aa8;">${overall.toFixed(2)}% &nbsp; (${letterGrade(overall)})</div>`;
 
     breakdown.innerHTML = html;
   }
