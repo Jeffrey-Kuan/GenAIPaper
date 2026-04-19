@@ -97,7 +97,7 @@
 <body>
 
 <h1>Math 2153 Grade Calculator</h1>
-<p class="subtitle">Spring 2026 &middot; Enter scores as percentages (0&ndash;100).</p>
+<p class="subtitle">Spring 2026</p>
 
 <fieldset>
   <legend>Midterms</legend>
@@ -128,7 +128,10 @@
     <label for="final">Final Exam <span class="weight">(35% &middot; out of 175)</span></label>
     <input type="number" id="final" min="0" max="175" step="1" placeholder="—">
   </div>
-  <p class="note">Enter your <strong>raw score</strong> out of 175.</p>
+  <p class="note">
+    Enter your <strong>raw score</strong> out of 175. Leave this blank if you'd rather figure out
+    what score you need — use the <strong>Target letter grade</strong> section below.
+  </p>
 </fieldset>
 
 <fieldset>
@@ -173,7 +176,6 @@
 </fieldset>
 
 <div class="result">
-  <div class="letter">Current Course Grade</div>
   <div class="grade" id="grade-display">—</div>
   <div class="letter" id="letter-display"></div>
   <div class="breakdown" id="breakdown"></div>
@@ -251,13 +253,28 @@
 
     let hwAvg = null;
     let droppedIdx = null;
+    let hwTotalEarned = null;
+    let hwTotalMax = null;
     if (hwScores.length >= 2) {
-      const sorted = [...hwScores].sort((a, b) => a.pct - b.pct);
-      droppedIdx = sorted[0].idx;
-      const kept = sorted.slice(1);
-      hwAvg = kept.reduce((sum, h) => sum + h.pct, 0) / kept.length;
+      let best = -Infinity;
+      for (const h of hwScores) {
+        const kept = hwScores.filter(x => x.idx !== h.idx);
+        const earned = kept.reduce((s, x) => s + x.raw, 0);
+        const max = kept.reduce((s, x) => s + x.max, 0);
+        if (max === 0) continue;
+        const avg = (earned / max) * 100;
+        if (avg > best) {
+          best = avg;
+          droppedIdx = h.idx;
+          hwTotalEarned = earned;
+          hwTotalMax = max;
+        }
+      }
+      hwAvg = best;
     } else if (hwScores.length === 1) {
       hwAvg = hwScores[0].pct;
+      hwTotalEarned = hwScores[0].raw;
+      hwTotalMax = hwScores[0].max;
     }
 
     const parts = [
@@ -318,22 +335,37 @@
     const percentComplete = Math.round(weightTotal * 100);
 
     gradeDisplay.textContent = overall.toFixed(2) + '%';
-    const ruleLabel = ruleUsed === 'resurrection'
-      ? 'resurrection policy applied'
-      : `traditional weighted (${percentComplete}% of course entered)`;
-    letterDisplay.textContent = `${letterGrade(overall)} · ${ruleLabel}`;
+    const ruleLabel = ruleUsed === 'resurrection' ? ' (resurrection policy applied)' : '';
+    letterDisplay.textContent = `${letterGrade(overall)}${ruleLabel}`;
 
     let html = '';
     for (const p of parts) {
       const w = (p.weight * 100).toFixed(0);
-      if (p.val === null) {
+      const isHwRow = p.name.startsWith('Homework');
+      if (p.val === null && !isHwRow) {
         html += `<div><em>${p.name}</em> — not entered (${w}%)</div>`;
+      } else if (isHwRow) {
+        if (hwScores.length === 0) {
+          html += `<div><em>Homework</em> — no scores entered (${w}%)</div>`;
+        } else {
+          html += `<div style="margin-top:0.5rem;"><strong>Homework (${w}%):</strong></div>`;
+          html += '<div style="margin-left:1rem;font-size:0.88rem;">';
+          for (const h of hwScores) {
+            const isDropped = h.idx === droppedIdx;
+            const style = isDropped ? 'style="color:#b22;text-decoration:line-through;"' : '';
+            const suffix = isDropped ? ' <em>(dropped — gives highest average)</em>' : '';
+            html += `<div ${style}>HW${h.idx}: ${h.raw}/${h.max} = ${h.pct.toFixed(2)}%${suffix}</div>`;
+          }
+          if (p.val !== null) {
+            const keptCount = hwScores.length - (droppedIdx !== null ? 1 : 0);
+            html += `<div style="margin-top:0.25rem;">Kept ${keptCount} HW${keptCount === 1 ? '' : 's'}: ${hwTotalEarned}/${hwTotalMax} earned = <strong>${p.val.toFixed(2)}%</strong></div>`;
+            html += `<div>Weighted: ${p.val.toFixed(2)}% × ${w}% = ${(p.val * p.weight).toFixed(2)} pts</div>`;
+          }
+          html += '</div>';
+        }
       } else {
         html += `<div>${p.name}: <strong>${p.val.toFixed(2)}%</strong> × ${w}% = ${(p.val * p.weight).toFixed(2)} pts</div>`;
       }
-    }
-    if (droppedIdx !== null) {
-      html += `<div class="dropped">Dropped: Homework ${droppedIdx} (lowest score)</div>`;
     }
 
     html += '<div style="margin-top:0.75rem;border-top:1px solid #cfe0f5;padding-top:0.5rem;">';
@@ -368,7 +400,7 @@
     for (let i = 1; i <= 8; i++) {
       const raw = getNum('hw' + i);
       if (raw === null) missingHw.push(i);
-      else hwScores.push({ idx: i, pct: (raw / HW_MAX[i]) * 100 });
+      else hwScores.push({ idx: i, raw: raw, max: HW_MAX[i], pct: (raw / HW_MAX[i]) * 100 });
     }
 
     const pctToPoints = (pct) => (pct / 100) * FINAL_MAX;
@@ -393,8 +425,15 @@
       return;
     }
 
-    const sorted = [...hwScores].sort((a, b) => a.pct - b.pct);
-    const hwAvg = sorted.slice(1).reduce((sum, h) => sum + h.pct, 0) / 7;
+    let hwAvg = -Infinity;
+    for (const h of hwScores) {
+      const kept = hwScores.filter(x => x.idx !== h.idx);
+      const earned = kept.reduce((s, x) => s + x.raw, 0);
+      const max = kept.reduce((s, x) => s + x.max, 0);
+      if (max === 0) continue;
+      const avg = (earned / max) * 100;
+      if (avg > hwAvg) hwAvg = avg;
+    }
 
     const needTraditional = (target - ec - 0.20 * m1 - 0.20 * m2 - 0.25 * hwAvg) / 0.35;
     const needResurrection = attended > 0 ? (target - ec) * 40 / attended : Infinity;
